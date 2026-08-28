@@ -1,0 +1,164 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000001 /* TransparentPhoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* TransparentPhoneApp.swift */; };
+		A10000000000000000000002 /* TransparencyModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* TransparencyModel.swift */; };
+		A10000000000000000000003 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* ContentView.swift */; };
+		A10000000000000000000004 /* ARTransparencySession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000004 /* ARTransparencySession.swift */; };
+		A10000000000000000000005 /* TransparencyPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* TransparencyPipeline.swift */; };
+		A10000000000000000000006 /* TransparencyRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* TransparencyRenderer.swift */; };
+		A10000000000000000000007 /* TransparencyShaders.metal in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* TransparencyShaders.metal */; };
+		A10000000000000000000008 /* TransparencyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* TransparencyView.swift */; };
+		A10000000000000000000009 /* TrackingQuality.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000010 /* TrackingQuality.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A20000000000000000000000 /* TransparentPhone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TransparentPhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000000000000000000001 /* TransparentPhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransparentPhoneApp.swift; sourceTree = "<group>"; };
+		A20000000000000000000002 /* TransparencyModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransparencyModel.swift; sourceTree = "<group>"; };
+		A20000000000000000000003 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A20000000000000000000004 /* ARTransparencySession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARTransparencySession.swift; sourceTree = "<group>"; };
+		A20000000000000000000005 /* TransparencyPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransparencyPipeline.swift; sourceTree = "<group>"; };
+		A20000000000000000000006 /* TransparencyRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransparencyRenderer.swift; sourceTree = "<group>"; };
+		A20000000000000000000007 /* TransparencyShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = text; path = TransparencyShaders.metal; sourceTree = "<group>"; };
+		A20000000000000000000008 /* TransparencyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransparencyView.swift; sourceTree = "<group>"; };
+		A20000000000000000000009 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A20000000000000000000010 /* TrackingQuality.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingQuality.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A30000000000000000000001 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = ( ); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A40000000000000000000000 = {isa = PBXGroup; children = (A40000000000000000000007 /* TransparentPhone */, A40000000000000000000006 /* Products */); sourceTree = "<group>"; };
+		A40000000000000000000001 /* App */ = {isa = PBXGroup; children = (A20000000000000000000001 /* TransparentPhoneApp.swift */, A20000000000000000000002 /* TransparencyModel.swift */, A20000000000000000000003 /* ContentView.swift */); path = App; sourceTree = "<group>"; };
+		A40000000000000000000002 /* Tracking */ = {isa = PBXGroup; children = (A20000000000000000000004 /* ARTransparencySession.swift */, A20000000000000000000010 /* TrackingQuality.swift */); path = Tracking; sourceTree = "<group>"; };
+		A40000000000000000000003 /* Rendering */ = {isa = PBXGroup; children = (A20000000000000000000005 /* TransparencyPipeline.swift */, A20000000000000000000006 /* TransparencyRenderer.swift */, A20000000000000000000007 /* TransparencyShaders.metal */); path = Rendering; sourceTree = "<group>"; };
+		A40000000000000000000004 /* UI */ = {isa = PBXGroup; children = (A20000000000000000000008 /* TransparencyView.swift */); path = UI; sourceTree = "<group>"; };
+		A40000000000000000000006 /* Products */ = {isa = PBXGroup; children = (A20000000000000000000000 /* TransparentPhone.app */); name = Products; sourceTree = "<group>"; };
+		A40000000000000000000007 /* TransparentPhone */ = {isa = PBXGroup; children = (A40000000000000000000001 /* App */, A40000000000000000000002 /* Tracking */, A40000000000000000000003 /* Rendering */, A40000000000000000000004 /* UI */, A20000000000000000000009 /* Info.plist */); path = TransparentPhone; sourceTree = "<group>"; };
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A50000000000000000000001 /* TransparentPhone */ = {isa = PBXNativeTarget; buildConfigurationList = A60000000000000000000002 /* Build configuration list for PBXNativeTarget "TransparentPhone" */; buildPhases = (A30000000000000000000002 /* Sources */, A30000000000000000000001 /* Frameworks */, A30000000000000000000003 /* Resources */); buildRules = ( ); dependencies = ( ); name = TransparentPhone; productName = TransparentPhone; productReference = A20000000000000000000000 /* TransparentPhone.app */; productType = "com.apple.product-type.application"; };
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A70000000000000000000001 /* Project object */ = {isa = PBXProject; attributes = {LastUpgradeCheck = 1600; TargetAttributes = {A50000000000000000000001 = {CreatedOnToolsVersion = 16.0; }; }; }; buildConfigurationList = A60000000000000000000001 /* Build configuration list for PBXProject "TransparentPhone" */; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base); mainGroup = A40000000000000000000000; productRefGroup = A40000000000000000000006 /* Products */; projectDirPath = ""; projectRoot = ""; targets = (A50000000000000000000001 /* TransparentPhone */); };
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A30000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000007 /* TransparencyShaders.metal in Resources */); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A30000000000000000000002 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001 /* TransparentPhoneApp.swift in Sources */, A10000000000000000000002 /* TransparencyModel.swift in Sources */, A10000000000000000000003 /* ContentView.swift in Sources */, A10000000000000000000004 /* ARTransparencySession.swift in Sources */, A10000000000000000000005 /* TransparencyPipeline.swift in Sources */, A10000000000000000000006 /* TransparencyRenderer.swift in Sources */, A10000000000000000000008 /* TransparencyView.swift in Sources */, A10000000000000000000009 /* TrackingQuality.swift in Sources */); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A80000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TransparentPhone/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.patrik.TransparentPhone;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1";
+			};
+			name = Debug;
+		};
+		A80000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TransparentPhone/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.patrik.TransparentPhone;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1";
+			};
+			name = Release;
+		};
+		A80000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A80000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A60000000000000000000001 /* Build configuration list for PBXProject "TransparentPhone" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A80000000000000000000003 /* Debug */,
+				A80000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A60000000000000000000002 /* Build configuration list for PBXNativeTarget "TransparentPhone" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A80000000000000000000001 /* Debug */,
+				A80000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A70000000000000000000001 /* Project object */;
+}

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDisplayName</key>
+    <string>Transparent Mirror</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.mariuspatrik.TransparentMirror</string>
+    <key>CFBundleName</key>
+    <string>Transparent Mirror</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>13.0</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Transparent Mirror uses the Mac camera as a live mirror and for optional eye tracking.</string>
+</dict>
+</plist>
