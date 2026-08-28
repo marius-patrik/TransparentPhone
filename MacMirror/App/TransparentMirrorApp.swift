@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 @main
 struct TransparentMirrorApp: App {
@@ -8,6 +9,9 @@ struct TransparentMirrorApp: App {
         WindowGroup {
             MirrorView(model: model)
                 .frame(minWidth: 900, minHeight: 600)
+                .onAppear {
+                    NSApp.activate(ignoringOtherApps: true)
+                }
         }
         .windowStyle(.hiddenTitleBar)
         .commands {

@@ -7,12 +7,15 @@ final class MirrorCapture: NSObject, ObservableObject {
     let session = AVCaptureSession()
 
     @Published private(set) var isRunning = false
-    @Published private(set) var cameraName = "No camera"
+    @Published private(set) var cameraName = "Discovering camera..."
+    @Published private(set) var authStatusString = "Checking..."
     @Published private(set) var permissionDenied = false
+    @Published private(set) var frameCount: Int = 0
     @Published private(set) var latestFrame: CGImage?
 
     private let queue = DispatchQueue(label: "transparent-mirror.capture", qos: .userInitiated)
     private let output = AVCaptureVideoDataOutput()
+    private let ciContext = CIContext(options: [.useSoftwareRenderer: false])
     private let visionHandler: (CVPixelBuffer, CMTime) -> Void
     private var configured = false
     private var notificationObservers: [NSObjectProtocol] = []
@@ -20,6 +23,7 @@ final class MirrorCapture: NSObject, ObservableObject {
     init(visionHandler: @escaping (CVPixelBuffer, CMTime) -> Void) {
         self.visionHandler = visionHandler
         super.init()
+        updateAuthStatus()
         setupNotifications()
     }
 
@@ -29,10 +33,33 @@ final class MirrorCapture: NSObject, ObservableObject {
         }
     }
 
-    func requestAndStart() {
+    func updateAuthStatus() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
-            DispatchQueue.main.async { self.permissionDenied = false }
+            authStatusString = "Authorized"
+            permissionDenied = false
+        case .notDetermined:
+            authStatusString = "Not Determined"
+            permissionDenied = false
+        case .denied:
+            authStatusString = "Denied"
+            permissionDenied = true
+        case .restricted:
+            authStatusString = "Restricted"
+            permissionDenied = true
+        @unknown default:
+            authStatusString = "Unknown"
+        }
+    }
+
+    func requestAndStart() {
+        updateAuthStatus()
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            DispatchQueue.main.async {
+                self.permissionDenied = false
+                self.authStatusString = "Authorized"
+            }
             configureAndStart()
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
@@ -40,9 +67,11 @@ final class MirrorCapture: NSObject, ObservableObject {
                     guard let self else { return }
                     if granted {
                         self.permissionDenied = false
+                        self.authStatusString = "Authorized"
                         self.configureAndStart()
                     } else {
                         self.permissionDenied = true
+                        self.authStatusString = "Denied"
                         self.cameraName = "Permission denied"
                     }
                 }
@@ -50,7 +79,7 @@ final class MirrorCapture: NSObject, ObservableObject {
         case .denied, .restricted:
             DispatchQueue.main.async {
                 self.permissionDenied = true
-                self.cameraName = "Permission denied"
+                self.cameraName = "Permission denied in System Settings"
             }
         @unknown default:
             DispatchQueue.main.async { self.permissionDenied = true }
@@ -65,7 +94,6 @@ final class MirrorCapture: NSObject, ObservableObject {
             }
             DispatchQueue.main.async {
                 self.isRunning = false
-                self.latestFrame = nil
             }
         }
     }
@@ -91,12 +119,14 @@ final class MirrorCapture: NSObject, ObservableObject {
 
     private func configure() {
         session.beginConfiguration()
-        session.sessionPreset = .high
+        if session.canSetSessionPreset(.high) {
+            session.sessionPreset = .high
+        }
 
         defer { session.commitConfiguration() }
 
         guard let device = preferredCamera() else {
-            DispatchQueue.main.async { self.cameraName = "No camera" }
+            DispatchQueue.main.async { self.cameraName = "No camera found" }
             return
         }
 
@@ -109,7 +139,10 @@ final class MirrorCapture: NSObject, ObservableObject {
             }
 
             let input = try AVCaptureDeviceInput(device: device)
-            guard session.canAddInput(input) else { return }
+            guard session.canAddInput(input) else {
+                DispatchQueue.main.async { self.cameraName = "Cannot add camera input" }
+                return
+            }
             session.addInput(input)
 
             if session.canAddOutput(output) {
@@ -119,17 +152,10 @@ final class MirrorCapture: NSObject, ObservableObject {
                 session.addOutput(output)
             }
 
-            if let connection = output.connection(with: .video) {
-                if connection.isVideoMirroringSupported {
-                    connection.automaticallyAdjustsVideoMirroring = false
-                    connection.isVideoMirrored = true
-                }
-            }
-
             let name = device.localizedName
             DispatchQueue.main.async { self.cameraName = name }
         } catch {
-            DispatchQueue.main.async { self.cameraName = "Camera error" }
+            DispatchQueue.main.async { self.cameraName = "Camera error: \(error.localizedDescription)" }
         }
     }
 
@@ -188,11 +214,12 @@ extension MirrorCapture: AVCaptureVideoDataOutputSampleBufferDelegate {
         let timestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
         visionHandler(pixelBuffer, timestamp)
 
-        var cgImage: CGImage?
-        let status = VTCreateCGImageFromCVPixelBuffer(pixelBuffer, options: nil, imageOut: &cgImage)
-        if status == noErr, let image = cgImage {
+        // Generate mirrored CGImage for direct, zero-quirk SwiftUI display
+        let ciImage = CIImage(cvPixelBuffer: pixelBuffer).oriented(.upMirrored)
+        if let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) {
             DispatchQueue.main.async {
-                self.latestFrame = image
+                self.frameCount &+= 1
+                self.latestFrame = cgImage
             }
         }
     }
