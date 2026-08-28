@@ -91,18 +91,12 @@ final class MirrorCapture: NSObject, ObservableObject {
             session.addOutput(output)
 
             if let connection = output.connection(with: .video) {
-                if connection.isVideoOrientationSupported {
-                    connection.videoOrientation = .landscapeRight
-                }
                 if connection.isVideoMirroringSupported {
                     connection.automaticallyAdjustsVideoMirroring = false
                     connection.isVideoMirrored = true
                 }
             }
             if let connection = previewLayer.connection {
-                if connection.isVideoOrientationSupported {
-                    connection.videoOrientation = .landscapeRight
-                }
                 if connection.isVideoMirroringSupported {
                     connection.automaticallyAdjustsVideoMirroring = false
                     connection.isVideoMirrored = true

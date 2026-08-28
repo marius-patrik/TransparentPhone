@@ -5,15 +5,13 @@ import simd
 
 /// Single ARKit session for the complete illusion.
 ///
-/// ARWorldTrackingConfiguration can simultaneously track the rear camera world and
-/// the user's front-camera face. This is preferable to independently running a
-/// TrueDepth session and a rear AVCaptureMultiCam session because ARKit gives us a
-/// common world coordinate system, synchronized frames, camera intrinsics and (on
-/// LiDAR devices) scene depth.
+/// ARWorldTrackingConfiguration simultaneously tracks the rear camera world and
+/// the user's front-camera face. This gives us a common world coordinate system,
+/// synchronized frames, camera intrinsics, and (on LiDAR devices) scene depth.
 final class ARTransparencySession: NSObject, ARSessionDelegate {
     let session = ARSession()
 
-    var onFrame: ((CVPixelBuffer, CVPixelBuffer?, simd_float3x3, CGSize) -> Void)?
+    var onFrame: ((ARFrame) -> Void)?
     var onEyeOffset: ((SIMD3<Float>) -> Void)?
     var onTracking: ((TrackingQuality) -> Void)?
     var onCalibrationProgress: ((Double) -> Void)?
@@ -42,8 +40,11 @@ final class ARTransparencySession: NSObject, ARSessionDelegate {
             run()
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
-                if granted { self?.run() }
-                else { self?.onError?("Camera permission was denied.") }
+                if granted {
+                    self?.run()
+                } else {
+                    self?.onError?("Camera permission was denied.")
+                }
             }
         default:
             onError?("Camera permission is unavailable. Enable it in Settings.")
@@ -83,15 +84,14 @@ final class ARTransparencySession: NSObject, ARSessionDelegate {
             return
         }
 
-        let depth = frame.smoothedSceneDepth?.depthMap ?? frame.sceneDepth?.depthMap
-        onFrame?(frame.capturedImage, depth, frame.camera.intrinsics, frame.camera.imageResolution)
+        onFrame?(frame)
 
         guard let face = frame.anchors.compactMap({ $0 as? ARFaceAnchor }).first else {
             onTracking?(.limited)
             return
         }
 
-        // Eye transforms are relative to the face. Convert both eyes to ARKit's
+        // Eye transforms are relative to the face anchor. Convert both eyes to ARKit's
         // world coordinate system, then into the rear-camera coordinate system.
         let leftWorld = simd_mul(face.transform, face.leftEyeTransform).columns.3.xyz
         let rightWorld = simd_mul(face.transform, face.rightEyeTransform).columns.3.xyz
@@ -133,10 +133,14 @@ final class ARTransparencySession: NSObject, ARSessionDelegate {
 
     func session(_ session: ARSession, cameraDidChangeTrackingState camera: ARCamera) {
         switch camera.trackingState {
-        case .normal: onTracking?(.normal)
-        case .limited: onTracking?(.limited)
-        case .notAvailable: onTracking?(.unavailable)
-        @unknown default: onTracking?(.limited)
+        case .normal:
+            onTracking?(.normal)
+        case .limited:
+            onTracking?(.limited)
+        case .notAvailable:
+            onTracking?(.unavailable)
+        @unknown default:
+            onTracking?(.limited)
         }
     }
 

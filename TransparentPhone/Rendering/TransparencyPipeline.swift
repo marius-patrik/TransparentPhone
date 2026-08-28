@@ -23,8 +23,8 @@ final class TransparencyPipeline {
         self.device = device
         renderer = TransparencyRenderer(device: device)
 
-        arSession.onFrame = { [weak self] image, depth, intrinsics, resolution in
-            self?.renderer?.setFrame(image, depth: depth, intrinsics: intrinsics, resolution: resolution)
+        arSession.onFrame = { [weak self] frame in
+            self?.renderer?.setFrame(frame)
         }
         arSession.onEyeOffset = { [weak self] offset in
             self?.renderer?.setEye(offset)

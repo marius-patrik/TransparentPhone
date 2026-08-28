@@ -6,16 +6,14 @@ import simd
 
 final class TransparencyRenderer: NSObject, MTKViewDelegate {
     struct Uniforms {
+        var displayTransform: matrix_float3x3
         var eyeOffsetMeters: SIMD2<Float>
         var focalLengthPixels: SIMD2<Float>
+        var viewportSizePixels: SIMD2<Float>
         var referenceDepthMeters: Float
         var strength: Float
         var depthEnabled: UInt32
         var debug: UInt32
-        var imageAspect: Float
-        var viewAspect: Float
-        var parallaxSign: Float
-        var rotationQuarterTurns: UInt32
     }
 
     let device: MTLDevice
@@ -26,10 +24,7 @@ final class TransparencyRenderer: NSObject, MTKViewDelegate {
     private let lock = NSLock()
 
     weak var view: MTKView?
-    private var latestImage: CVPixelBuffer?
-    private var latestDepth: CVPixelBuffer?
-    private var latestIntrinsics = matrix_identity_float3x3
-    private var latestResolution = CGSize(width: 1920, height: 1440)
+    private var latestFrame: ARFrame?
     private var eyeOffset = SIMD3<Float>.zero
 
     var referenceDepthMeters: Float = 1.5
@@ -66,7 +61,6 @@ final class TransparencyRenderer: NSObject, MTKViewDelegate {
         )
         self.fallbackDepthTexture = fallback
 
-        // Load shader library either from precompiled default library, bundle resource, or runtime source
         var library: MTLLibrary?
         if let defaultLib = device.makeDefaultLibrary() {
             library = defaultLib
@@ -92,12 +86,9 @@ final class TransparencyRenderer: NSObject, MTKViewDelegate {
         super.init()
     }
 
-    func setFrame(_ image: CVPixelBuffer, depth: CVPixelBuffer?, intrinsics: simd_float3x3, resolution: CGSize) {
+    func setFrame(_ frame: ARFrame) {
         lock.lock()
-        latestImage = image
-        latestDepth = depth
-        latestIntrinsics = intrinsics
-        latestResolution = resolution
+        latestFrame = frame
         lock.unlock()
     }
 
@@ -112,13 +103,10 @@ final class TransparencyRenderer: NSObject, MTKViewDelegate {
               let pass = view.currentRenderPassDescriptor else { return }
 
         lock.lock()
-        guard let image = latestImage else {
+        guard let frame = latestFrame else {
             lock.unlock()
             return
         }
-        let depth = latestDepth
-        let intrinsics = latestIntrinsics
-        let resolution = latestResolution
         let eye = eyeOffset
         let strengthValue = strength
         let parallax = parallaxEnabled
@@ -127,22 +115,37 @@ final class TransparencyRenderer: NSObject, MTKViewDelegate {
         let referenceDepth = referenceDepthMeters
         lock.unlock()
 
+        let image = frame.capturedImage
         guard CVPixelBufferGetPlaneCount(image) >= 2 else { return }
         guard let yTexture = makeTexture(image, plane: 0, pixelFormat: .r8Unorm),
               let cbcrTexture = makeTexture(image, plane: 1, pixelFormat: .rg8Unorm) else { return }
-        let depthTexture = depth.flatMap { makeTexture($0, plane: 0, pixelFormat: .r32Float) }
+
+        let depthBuffer = frame.smoothedSceneDepth?.depthMap ?? frame.sceneDepth?.depthMap
+        let depthTexture = depthBuffer.flatMap { makeTexture($0, plane: 0, pixelFormat: .r32Float) }
+
+        let viewportSize = (view.drawableSize.width > 0 && view.drawableSize.height > 0)
+            ? view.drawableSize
+            : CGSize(width: 1179, height: 2556)
+
+        // ARKit's calibrated displayTransform maps view coordinates to camera texture coordinates
+        let affineTransform = frame.displayTransform(for: .portrait, viewportSize: viewportSize)
+        let matrix = matrix_float3x3(
+            SIMD3<Float>(Float(affineTransform.a), Float(affineTransform.b), 0),
+            SIMD3<Float>(Float(affineTransform.c), Float(affineTransform.d), 0),
+            SIMD3<Float>(Float(affineTransform.tx), Float(affineTransform.ty), 1)
+        )
+
+        let intrinsics = frame.camera.intrinsics
 
         let uniforms = Uniforms(
+            displayTransform: matrix,
             eyeOffsetMeters: parallax ? SIMD2<Float>(eye.x, eye.y) : .zero,
             focalLengthPixels: SIMD2<Float>(intrinsics[0][0], intrinsics[1][1]),
+            viewportSizePixels: SIMD2<Float>(Float(viewportSize.width), Float(viewportSize.height)),
             referenceDepthMeters: max(referenceDepth, 0.1),
             strength: strengthValue,
             depthEnabled: (depthVal && depthTexture != nil) ? 1 : 0,
-            debug: debug ? 1 : 0,
-            imageAspect: Float(resolution.height / max(resolution.width, 1)),
-            viewAspect: Float(view.drawableSize.width / max(view.drawableSize.height, 1)),
-            parallaxSign: -1.0,
-            rotationQuarterTurns: 1
+            debug: debug ? 1 : 0
         )
 
         guard let commandBuffer = commandQueue.makeCommandBuffer(),
@@ -178,16 +181,14 @@ private let TransparencyShadersSource = """
 using namespace metal;
 
 struct Uniforms {
+    float3x3 displayTransform;
     float2 eyeOffsetMeters;
     float2 focalLengthPixels;
+    float2 viewportSizePixels;
     float referenceDepthMeters;
     float strength;
     uint depthEnabled;
     uint debug;
-    float imageAspect;
-    float viewAspect;
-    float parallaxSign;
-    uint rotationQuarterTurns;
 };
 
 struct VertexOut {
@@ -217,39 +218,24 @@ fragment float4 transparent_fragment(
 
     constexpr sampler linearSampler(address::clamp_to_edge, filter::linear);
 
-    float2 displayUV = in.uv;
-
-    if (u.imageAspect > u.viewAspect) {
-        float visible = u.viewAspect / max(u.imageAspect, 0.0001f);
-        displayUV.x = (displayUV.x - 0.5f) * visible + 0.5f;
-    } else {
-        float visible = u.imageAspect / max(u.viewAspect, 0.0001f);
-        displayUV.y = (displayUV.y - 0.5f) * visible + 0.5f;
-    }
-
-    float2 sensorUV = (u.rotationQuarterTurns == 1)
-        ? float2(displayUV.y, 1.0f - displayUV.x)
-        : displayUV;
+    float3 baseSensorUV = u.displayTransform * float3(in.uv, 1.0f);
 
     float depthMeters = u.referenceDepthMeters;
     if (u.depthEnabled != 0) {
-        float sampledDepth = depth.sample(linearSampler, sensorUV).r;
+        float sampledDepth = depth.sample(linearSampler, baseSensorUV.xy).r;
         if (isfinite(sampledDepth) && sampledDepth >= 0.15f && sampledDepth <= 12.0f) {
             depthMeters = sampledDepth;
         }
     }
 
     float2 pixelShift = u.eyeOffsetMeters * u.focalLengthPixels / max(depthMeters, 0.15f);
-    float2 uvShift = pixelShift / float2(luma.get_width(), luma.get_height());
+    float2 uvShift = (pixelShift / max(u.viewportSizePixels, float2(1.0f, 1.0f))) * u.strength;
+    float2 shiftedViewportUV = in.uv - float2(uvShift.x, -uvShift.y);
 
-    float2 rotatedShift = (u.rotationQuarterTurns == 1)
-        ? float2(uvShift.y, -uvShift.x)
-        : float2(uvShift.x, -uvShift.y);
+    float3 sampleSensorUV = u.displayTransform * float3(shiftedViewportUV, 1.0f);
 
-    float2 sampleUV = sensorUV + rotatedShift * u.parallaxSign * u.strength;
-
-    float y = luma.sample(linearSampler, sampleUV).r;
-    float2 cbcr = chroma.sample(linearSampler, sampleUV).rg;
+    float y = luma.sample(linearSampler, sampleSensorUV.xy).r;
+    float2 cbcr = chroma.sample(linearSampler, sampleSensorUV.xy).rg;
 
     const float4x4 ycbcrToRGB = float4x4(
         float4(1.0000f,  1.0000f,  1.0000f,  0.0000f),

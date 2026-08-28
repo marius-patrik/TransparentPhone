@@ -2,16 +2,14 @@
 using namespace metal;
 
 struct Uniforms {
+    float3x3 displayTransform;
     float2 eyeOffsetMeters;
     float2 focalLengthPixels;
+    float2 viewportSizePixels;
     float referenceDepthMeters;
     float strength;
     uint depthEnabled;
     uint debug;
-    float imageAspect;
-    float viewAspect;
-    float parallaxSign;
-    uint rotationQuarterTurns;
 };
 
 struct VertexOut {
@@ -41,46 +39,35 @@ fragment float4 transparent_fragment(
 
     constexpr sampler linearSampler(address::clamp_to_edge, filter::linear);
 
-    // 1. Display UV space: (0,0) top-left, (1,1) bottom-right
-    float2 displayUV = in.uv;
+    // 1. Map viewport coordinate to camera sensor coordinates using ARKit's calibrated displayTransform
+    float3 baseSensorUV = u.displayTransform * float3(in.uv, 1.0f);
 
-    // 2. Aspect ratio correction: crop camera to display aspect ratio without stretching
-    if (u.imageAspect > u.viewAspect) {
-        float visible = u.viewAspect / max(u.imageAspect, 0.0001f);
-        displayUV.x = (displayUV.x - 0.5f) * visible + 0.5f;
-    } else {
-        float visible = u.imageAspect / max(u.viewAspect, 0.0001f);
-        displayUV.y = (displayUV.y - 0.5f) * visible + 0.5f;
-    }
-
-    // 3. Map display UV to sensor UV
-    float2 sensorUV = (u.rotationQuarterTurns == 1)
-        ? float2(displayUV.y, 1.0f - displayUV.x)
-        : displayUV;
-
-    // 4. Sample LiDAR scene depth (if available and enabled)
+    // 2. Sample LiDAR scene depth (if available and enabled)
     float depthMeters = u.referenceDepthMeters;
     if (u.depthEnabled != 0) {
-        float sampledDepth = depth.sample(linearSampler, sensorUV).r;
+        float sampledDepth = depth.sample(linearSampler, baseSensorUV.xy).r;
         if (isfinite(sampledDepth) && sampledDepth >= 0.15f && sampledDepth <= 12.0f) {
             depthMeters = sampledDepth;
         }
     }
 
-    // 5. Calculate pinhole disparity shift
+    // 3. Calculate viewport disparity shift:
+    // When the viewer moves right (+X), background objects appear shifted to the right in the window frame.
+    // Pinhole relationship: delta_uv = (f / viewport_dim) * delta_eye / depth
     float2 pixelShift = u.eyeOffsetMeters * u.focalLengthPixels / max(depthMeters, 0.15f);
-    float2 uvShift = pixelShift / float2(luma.get_width(), luma.get_height());
+    float2 uvShift = (pixelShift / max(u.viewportSizePixels, float2(1.0f, 1.0f))) * u.strength;
 
-    float2 rotatedShift = (u.rotationQuarterTurns == 1)
-        ? float2(uvShift.y, -uvShift.x)
-        : float2(uvShift.x, -uvShift.y);
+    // Shift the sampled viewport coordinate
+    float2 shiftedViewportUV = in.uv - float2(uvShift.x, -uvShift.y);
 
-    float2 sampleUV = sensorUV + rotatedShift * u.parallaxSign * u.strength;
+    // 4. Map the shifted viewport UV to camera sensor coordinates
+    float3 sampleSensorUV = u.displayTransform * float3(shiftedViewportUV, 1.0f);
 
-    // 6. Sample YCbCr and convert to RGB
-    float y = luma.sample(linearSampler, sampleUV).r;
-    float2 cbcr = chroma.sample(linearSampler, sampleUV).rg;
+    // 5. Sample full-range YCbCr camera planes
+    float y = luma.sample(linearSampler, sampleSensorUV.xy).r;
+    float2 cbcr = chroma.sample(linearSampler, sampleSensorUV.xy).rg;
 
+    // BT.709 full-range YCbCr -> RGB conversion matrix
     const float4x4 ycbcrToRGB = float4x4(
         float4(1.0000f,  1.0000f,  1.0000f,  0.0000f),
         float4(0.0000f, -0.3441f,  1.7720f,  0.0000f),
@@ -90,6 +77,7 @@ fragment float4 transparent_fragment(
 
     float4 color = ycbcrToRGB * float4(y, cbcr.x, cbcr.y, 1.0f);
 
+    // Optional debug grid overlay
     if (u.debug != 0) {
         float2 grid = abs(fract(in.uv * 20.0f) - 0.5f);
         float line = 1.0f - smoothstep(0.47f, 0.50f, max(grid.x, grid.y));

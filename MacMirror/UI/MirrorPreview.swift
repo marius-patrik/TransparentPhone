@@ -63,9 +63,6 @@ final class MirrorPreviewView: NSView {
         }
         previewLayer.videoGravity = .resizeAspectFill
         if let connection = previewLayer.connection {
-            if connection.isVideoOrientationSupported {
-                connection.videoOrientation = .landscapeRight
-            }
             if connection.isVideoMirroringSupported {
                 connection.automaticallyAdjustsVideoMirroring = false
                 connection.isVideoMirrored = true
