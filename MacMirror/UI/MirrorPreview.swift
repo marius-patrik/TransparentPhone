@@ -9,70 +9,70 @@ struct MirrorPreview: NSViewRepresentable {
         let view = MirrorPreviewView()
         view.capture = capture
         view.zoom = zoom
-        view.updateSession()
+        view.setupLayer()
         return view
     }
 
     func updateNSView(_ nsView: MirrorPreviewView, context: Context) {
         nsView.capture = capture
         nsView.zoom = zoom
-        nsView.updateSession()
+        nsView.setupLayer()
     }
 }
 
 final class MirrorPreviewView: NSView {
     var capture: MirrorCapture? {
-        didSet { updateSession() }
+        didSet { setupLayer() }
     }
     var zoom: Double = 1.0 {
-        didSet { updateZoom() }
-    }
-
-    private var previewLayer: AVCaptureVideoPreviewLayer? {
-        layer as? AVCaptureVideoPreviewLayer
-    }
-
-    override func makeBackingLayer() -> CALayer {
-        let preview = AVCaptureVideoPreviewLayer()
-        preview.videoGravity = .resizeAspectFill
-        return preview
+        didSet { updateLayerFrame() }
     }
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
-        layerContentsRedrawPolicy = .onSetNeedsDisplay
+        layer = CALayer()
+        layer?.backgroundColor = NSColor.black.cgColor
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         wantsLayer = true
-        layerContentsRedrawPolicy = .onSetNeedsDisplay
-    }
-
-    override func setFrameSize(_ newSize: NSSize) {
-        super.setFrameSize(newSize)
-        updateZoom()
+        layer = CALayer()
+        layer?.backgroundColor = NSColor.black.cgColor
     }
 
     override func layout() {
         super.layout()
-        updateZoom()
+        updateLayerFrame()
     }
 
-    func updateSession() {
-        guard let previewLayer = previewLayer, let session = capture?.session else { return }
-        if previewLayer.session !== session {
-            previewLayer.session = session
+    func setupLayer() {
+        guard let capture = capture else { return }
+        if capture.previewLayer.superlayer !== layer {
+            capture.previewLayer.removeFromSuperlayer()
+            layer?.addSublayer(capture.previewLayer)
         }
-        updateZoom()
+        updateLayerFrame()
     }
 
-    func updateZoom() {
-        guard let previewLayer = previewLayer else { return }
-        if let connection = previewLayer.connection, connection.isVideoMirroringSupported {
-            connection.automaticallyAdjustsVideoMirroring = false
-            connection.isVideoMirrored = true
+    private func updateLayerFrame() {
+        guard let capture = capture else { return }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+
+        let z = max(1.0, min(3.0, zoom))
+        if z > 1.001 {
+            let w = bounds.width * CGFloat(z)
+            let h = bounds.height * CGFloat(z)
+            let x = (bounds.width - w) * 0.5
+            let y = (bounds.height - h) * 0.5
+            capture.previewLayer.frame = CGRect(x: x, y: y, width: w, height: h)
+        } else {
+            capture.previewLayer.frame = bounds
         }
+
+        capture.updateMirroring()
+        CATransaction.commit()
     }
 }

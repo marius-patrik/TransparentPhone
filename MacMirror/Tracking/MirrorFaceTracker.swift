@@ -24,42 +24,58 @@ final class MirrorFaceTracker: ObservableObject {
     private let queue = DispatchQueue(label: "transparent-mirror.vision", qos: .userInitiated)
     private var lastRequestTime: CFTimeInterval = 0
     private let minInterval: CFTimeInterval = 1.0 / 30.0
+    private var isProcessing = false
 
     func process(_ pixelBuffer: CVPixelBuffer, timestamp: CMTime) {
         let now = CACurrentMediaTime()
         guard now - lastRequestTime >= minInterval else { return }
+        guard !isProcessing else { return } // Drop frame if previous Vision analysis is still running
+
+        isProcessing = true
         lastRequestTime = now
 
         queue.async { [weak self] in
-            guard let self else { return }
-            let request = VNDetectFaceLandmarksRequest()
-            let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up, options: [:])
-            do {
-                try handler.perform([request])
-                guard let face = request.results?.first else {
-                    DispatchQueue.main.async { self.state.confidence = 0 }
-                    return
-                }
-                let landmarks = face.landmarks
-                let left = Self.eyeCenter(landmarks?.leftEye)
-                let right = Self.eyeCenter(landmarks?.rightEye)
-                guard let left, let right else { return }
+            autoreleasepool {
+                defer { self?.isProcessing = false }
+                guard let self else { return }
 
-                let observation = EyeTrackingState(
-                    leftEye: left,
-                    rightEye: right,
-                    faceBounds: face.boundingBox,
-                    yaw: Double(face.yaw?.doubleValue ?? 0),
-                    pitch: Double(face.pitch?.doubleValue ?? 0),
-                    roll: Double(face.roll?.doubleValue ?? 0),
-                    confidence: 1,
-                    timestamp: timestamp
-                )
-                DispatchQueue.main.async {
-                    self.state = Self.smooth(old: self.state, new: observation, alpha: 0.28)
+                let request = VNDetectFaceLandmarksRequest()
+                let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up, options: [:])
+                do {
+                    try handler.perform([request])
+                    guard let face = request.results?.first else {
+                        DispatchQueue.main.async {
+                            if self.state.confidence > 0 {
+                                self.state.confidence = 0
+                            }
+                        }
+                        return
+                    }
+                    let landmarks = face.landmarks
+                    let left = Self.eyeCenter(landmarks?.leftEye)
+                    let right = Self.eyeCenter(landmarks?.rightEye)
+                    guard let left, let right else { return }
+
+                    let observation = EyeTrackingState(
+                        leftEye: left,
+                        rightEye: right,
+                        faceBounds: face.boundingBox,
+                        yaw: Double(face.yaw?.doubleValue ?? 0),
+                        pitch: Double(face.pitch?.doubleValue ?? 0),
+                        roll: Double(face.roll?.doubleValue ?? 0),
+                        confidence: 1,
+                        timestamp: timestamp
+                    )
+                    DispatchQueue.main.async {
+                        self.state = Self.smooth(old: self.state, new: observation, alpha: 0.3)
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        if self.state.confidence > 0 {
+                            self.state.confidence = 0
+                        }
+                    }
                 }
-            } catch {
-                DispatchQueue.main.async { self.state.confidence = 0 }
             }
         }
     }

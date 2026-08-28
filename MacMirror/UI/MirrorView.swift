@@ -9,28 +9,11 @@ struct MirrorView: View {
             // Dark base background
             Color.black.ignoresSafeArea()
 
-            // Layer 1: Hardware-backed preview layer
+            // Hardware-accelerated camera preview
             MirrorPreview(capture: model.capture, zoom: model.zoom)
                 .ignoresSafeArea()
 
-            // Layer 2: Direct CIImage-rendered mirrored camera frame
-            if let frame = model.capture.latestFrame {
-                Image(decorative: frame, scale: 1.0)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .scaleEffect(model.zoom)
-                    .ignoresSafeArea()
-            } else if model.capture.isRunning {
-                VStack(spacing: 12) {
-                    ProgressView()
-                        .scaleEffect(1.2)
-                    Text("Connecting to \(model.capture.cameraName)...")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            // Tracking visualization overlay
+            // Face & Eye tracking visualization overlay
             if model.showTracking && model.eyeTrackingEnabled {
                 TrackingOverlay(state: model.tracker.state)
             }
@@ -51,14 +34,6 @@ struct MirrorView: View {
 
                         Text(model.capture.cameraName)
                             .foregroundStyle(.secondary)
-
-                        if model.capture.frameCount > 0 {
-                            Text("\(model.capture.frameCount) frames")
-                                .font(.caption.monospacedDigit())
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(.black.opacity(0.3), in: Capsule())
-                        }
 
                         Button(model.capture.isRunning ? "Stop" : "Start") {
                             if model.capture.isRunning {
@@ -95,7 +70,7 @@ struct MirrorView: View {
                 }
             }
 
-            // Permission Denied / Action Overlay
+            // Permission Denied Overlay
             if model.capture.permissionDenied {
                 permissionDeniedOverlay
             }
