@@ -11,8 +11,9 @@
 		A10000000000000000000002 /* MirrorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* MirrorModel.swift */; };
 		A10000000000000000000003 /* MirrorCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* MirrorCapture.swift */; };
 		A10000000000000000000004 /* MirrorFaceTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000004 /* MirrorFaceTracker.swift */; };
-		A10000000000000000000005 /* MirrorPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* MirrorPreview.swift */; };
-		A10000000000000000000006 /* MirrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* MirrorView.swift */; };
+		A10000000000000000000005 /* MirrorRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* MirrorRenderer.swift */; };
+		A10000000000000000000006 /* MirrorMetalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* MirrorMetalView.swift */; };
+		A10000000000000000000007 /* MirrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* MirrorView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -21,10 +22,11 @@
 		A20000000000000000000002 /* MirrorModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorModel.swift; sourceTree = "<group>"; };
 		A20000000000000000000003 /* MirrorCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorCapture.swift; sourceTree = "<group>"; };
 		A20000000000000000000004 /* MirrorFaceTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorFaceTracker.swift; sourceTree = "<group>"; };
-		A20000000000000000000005 /* MirrorPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorPreview.swift; sourceTree = "<group>"; };
-		A20000000000000000000006 /* MirrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorView.swift; sourceTree = "<group>"; };
-		A20000000000000000000007 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		A20000000000000000000008 /* MacMirror.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MacMirror.entitlements; sourceTree = "<group>"; };
+		A20000000000000000000005 /* MirrorRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorRenderer.swift; sourceTree = "<group>"; };
+		A20000000000000000000006 /* MirrorMetalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorMetalView.swift; sourceTree = "<group>"; };
+		A20000000000000000000007 /* MirrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorView.swift; sourceTree = "<group>"; };
+		A20000000000000000000008 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A20000000000000000000009 /* MacMirror.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MacMirror.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -32,12 +34,13 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		A40000000000000000000000 = {isa = PBXGroup; children = (A40000000000000000000001 /* App */, A40000000000000000000002 /* Capture */, A40000000000000000000003 /* Tracking */, A40000000000000000000004 /* UI */, A20000000000000000000007 /* Info.plist */, A20000000000000000000008 /* MacMirror.entitlements */, A40000000000000000000005 /* Products */); sourceTree = "<group>"; };
+		A40000000000000000000000 = {isa = PBXGroup; children = (A40000000000000000000001 /* App */, A40000000000000000000002 /* Capture */, A40000000000000000000003 /* Tracking */, A40000000000000000000004 /* Rendering */, A40000000000000000000005 /* UI */, A20000000000000000000008 /* Info.plist */, A20000000000000000000009 /* MacMirror.entitlements */, A40000000000000000000006 /* Products */); sourceTree = "<group>"; };
 		A40000000000000000000001 /* App */ = {isa = PBXGroup; children = (A20000000000000000000001 /* TransparentMirrorApp.swift */, A20000000000000000000002 /* MirrorModel.swift */); path = App; sourceTree = "<group>"; };
 		A40000000000000000000002 /* Capture */ = {isa = PBXGroup; children = (A20000000000000000000003 /* MirrorCapture.swift */); path = Capture; sourceTree = "<group>"; };
 		A40000000000000000000003 /* Tracking */ = {isa = PBXGroup; children = (A20000000000000000000004 /* MirrorFaceTracker.swift */); path = Tracking; sourceTree = "<group>"; };
-		A40000000000000000000004 /* UI */ = {isa = PBXGroup; children = (A20000000000000000000005 /* MirrorPreview.swift */, A20000000000000000000006 /* MirrorView.swift */); path = UI; sourceTree = "<group>"; };
-		A40000000000000000000005 /* Products */ = {isa = PBXGroup; children = (A20000000000000000000000 /* TransparentMirror.app */); name = Products; sourceTree = "<group>"; };
+		A40000000000000000000004 /* Rendering */ = {isa = PBXGroup; children = (A20000000000000000000005 /* MirrorRenderer.swift */); path = Rendering; sourceTree = "<group>"; };
+		A40000000000000000000005 /* UI */ = {isa = PBXGroup; children = (A20000000000000000000006 /* MirrorMetalView.swift */, A20000000000000000000007 /* MirrorView.swift */); path = UI; sourceTree = "<group>"; };
+		A40000000000000000000006 /* Products */ = {isa = PBXGroup; children = (A20000000000000000000000 /* TransparentMirror.app */); name = Products; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -45,7 +48,7 @@
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		A60000000000000000000001 /* Project object */ = {isa = PBXProject; attributes = {LastUpgradeCheck = 1600; TargetAttributes = {A50000000000000000000001 = {CreatedOnToolsVersion = 16.0; }; }; }; buildConfigurationList = A70000000000000000000001 /* Project configuration list */; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base); mainGroup = A40000000000000000000000; productRefGroup = A40000000000000000000005 /* Products */; projectDirPath = ""; projectRoot = ""; targets = (A50000000000000000000001 /* TransparentMirror */); };
+		A60000000000000000000001 /* Project object */ = {isa = PBXProject; attributes = {LastUpgradeCheck = 1600; TargetAttributes = {A50000000000000000000001 = {CreatedOnToolsVersion = 16.0; }; }; }; buildConfigurationList = A70000000000000000000001 /* Project configuration list */; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base); mainGroup = A40000000000000000000000; productRefGroup = A40000000000000000000006 /* Products */; projectDirPath = ""; projectRoot = ""; targets = (A50000000000000000000001 /* TransparentMirror */); };
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
@@ -53,7 +56,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		A30000000000000000000002 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001 /* TransparentMirrorApp.swift in Sources */, A10000000000000000000002 /* MirrorModel.swift in Sources */, A10000000000000000000003 /* MirrorCapture.swift in Sources */, A10000000000000000000004 /* MirrorFaceTracker.swift in Sources */, A10000000000000000000005 /* MirrorPreview.swift in Sources */, A10000000000000000000006 /* MirrorView.swift in Sources */); runOnlyForDeploymentPostprocessing = 0; };
+		A30000000000000000000002 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001 /* TransparentMirrorApp.swift in Sources */, A10000000000000000000002 /* MirrorModel.swift in Sources */, A10000000000000000000003 /* MirrorCapture.swift in Sources */, A10000000000000000000004 /* MirrorFaceTracker.swift in Sources */, A10000000000000000000005 /* MirrorRenderer.swift in Sources */, A10000000000000000000006 /* MirrorMetalView.swift in Sources */, A10000000000000000000007 /* MirrorView.swift in Sources */); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */

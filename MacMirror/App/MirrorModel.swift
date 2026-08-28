@@ -1,6 +1,7 @@
 import SwiftUI
 import AVFoundation
 import Combine
+import Metal
 
 @MainActor
 final class MirrorModel: ObservableObject {
@@ -12,16 +13,29 @@ final class MirrorModel: ObservableObject {
 
     let capture: MirrorCapture
     let tracker: MirrorFaceTracker
+    let renderer: MirrorRenderer?
     private var cancellables = Set<AnyCancellable>()
 
     init() {
         let tracker = MirrorFaceTracker()
         self.tracker = tracker
-        self.capture = MirrorCapture { [weak tracker] buffer, timestamp in
+        self.capture = MirrorCapture()
+
+        if let device = MTLCreateSystemDefaultDevice() {
+            self.renderer = MirrorRenderer(device: device)
+        } else {
+            self.renderer = nil
+        }
+
+        let rendererRef = self.renderer
+        capture.onFrame = { buffer in
+            rendererRef?.setPixelBuffer(buffer)
+        }
+        capture.visionHandler = { [weak tracker] buffer, timestamp in
             tracker?.process(buffer, timestamp: timestamp)
         }
 
-        // Forward capture state changes (isRunning, cameraName, permissionDenied)
+        // Forward capture state changes
         capture.objectWillChange
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -29,7 +43,7 @@ final class MirrorModel: ObservableObject {
             }
             .store(in: &cancellables)
 
-        // Forward tracker state changes (face/eye tracking confidence and landmarks)
+        // Forward tracker state changes
         tracker.objectWillChange
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in

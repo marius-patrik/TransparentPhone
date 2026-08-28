@@ -9,8 +9,8 @@ struct MirrorView: View {
             // Dark base background
             Color.black.ignoresSafeArea()
 
-            // Hardware-accelerated camera preview
-            MirrorPreview(capture: model.capture, zoom: model.zoom)
+            // Pure Metal GPU-accelerated mirrored camera display
+            MirrorMetalView(renderer: model.renderer, zoom: model.zoom)
                 .ignoresSafeArea()
 
             // Face & Eye tracking visualization overlay

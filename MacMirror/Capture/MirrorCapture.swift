@@ -4,23 +4,21 @@ import Foundation
 
 final class MirrorCapture: NSObject, ObservableObject {
     let session = AVCaptureSession()
-    let previewLayer = AVCaptureVideoPreviewLayer()
 
     @Published private(set) var isRunning = false
     @Published private(set) var cameraName = "Discovering camera..."
     @Published private(set) var permissionDenied = false
 
+    var onFrame: ((CVPixelBuffer) -> Void)?
+    var visionHandler: ((CVPixelBuffer, CMTime) -> Void)?
+
     private let queue = DispatchQueue(label: "transparent-mirror.capture", qos: .userInitiated)
     private let output = AVCaptureVideoDataOutput()
-    private let visionHandler: (CVPixelBuffer, CMTime) -> Void
     private var configured = false
     private var notificationObservers: [NSObjectProtocol] = []
 
-    init(visionHandler: @escaping (CVPixelBuffer, CMTime) -> Void) {
-        self.visionHandler = visionHandler
+    override init() {
         super.init()
-        previewLayer.session = session
-        previewLayer.videoGravity = .resizeAspectFill
         setupNotifications()
     }
 
@@ -97,7 +95,6 @@ final class MirrorCapture: NSObject, ObservableObject {
 
         defer {
             session.commitConfiguration()
-            updateMirroring()
         }
 
         guard let device = preferredCamera() else {
@@ -131,17 +128,6 @@ final class MirrorCapture: NSObject, ObservableObject {
             DispatchQueue.main.async { self.cameraName = name }
         } catch {
             DispatchQueue.main.async { self.cameraName = "Camera error: \(error.localizedDescription)" }
-        }
-    }
-
-    func updateMirroring() {
-        if let connection = output.connection(with: .video), connection.isVideoMirroringSupported {
-            connection.automaticallyAdjustsVideoMirroring = false
-            connection.isVideoMirrored = true
-        }
-        if let connection = previewLayer.connection, connection.isVideoMirroringSupported {
-            connection.automaticallyAdjustsVideoMirroring = false
-            connection.isVideoMirrored = true
         }
     }
 
@@ -199,7 +185,8 @@ extension MirrorCapture: AVCaptureVideoDataOutputSampleBufferDelegate {
         autoreleasepool {
             guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
             let timestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
-            visionHandler(pixelBuffer, timestamp)
+            onFrame?(pixelBuffer)
+            visionHandler?(pixelBuffer, timestamp)
         }
     }
 }
