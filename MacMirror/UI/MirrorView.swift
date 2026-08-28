@@ -5,9 +5,18 @@ struct MirrorView: View {
 
     var body: some View {
         ZStack {
+            // Base layer: Low-latency AVCaptureVideoPreviewLayer
             MirrorPreview(capture: model.capture, zoom: model.zoom)
                 .ignoresSafeArea()
-                .background(.black)
+
+            // Active frame layer: Zero-latency VideoToolbox frame renderer
+            if let frame = model.capture.latestFrame {
+                Image(decorative: frame, scale: 1.0)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .scaleEffect(x: -model.zoom, y: model.zoom)
+                    .ignoresSafeArea()
+            }
 
             if model.showTracking && model.eyeTrackingEnabled {
                 TrackingOverlay(state: model.tracker.state)

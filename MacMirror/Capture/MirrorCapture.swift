@@ -1,6 +1,7 @@
 import AVFoundation
 import CoreImage
 import Foundation
+import VideoToolbox
 
 final class MirrorCapture: NSObject, ObservableObject {
     let session = AVCaptureSession()
@@ -8,6 +9,7 @@ final class MirrorCapture: NSObject, ObservableObject {
     @Published private(set) var isRunning = false
     @Published private(set) var cameraName = "No camera"
     @Published private(set) var permissionDenied = false
+    @Published private(set) var latestFrame: CGImage?
 
     private let queue = DispatchQueue(label: "transparent-mirror.capture", qos: .userInitiated)
     private let output = AVCaptureVideoDataOutput()
@@ -63,6 +65,7 @@ final class MirrorCapture: NSObject, ObservableObject {
             }
             DispatchQueue.main.async {
                 self.isRunning = false
+                self.latestFrame = nil
             }
         }
     }
@@ -150,12 +153,12 @@ final class MirrorCapture: NSObject, ObservableObject {
         let center = NotificationCenter.default
         let connectObs = center.addObserver(forName: .AVCaptureDeviceWasConnected, object: nil, queue: .main) { [weak self] _ in
             guard let self else { return }
-            if self.cameraName == "No camera" {
-                self.queue.async {
-                    self.configure()
-                    if self.isRunning && !self.session.isRunning {
-                        self.session.startRunning()
-                    }
+            self.queue.async {
+                self.configure()
+                if self.isRunning && !self.session.isRunning {
+                    self.session.startRunning()
+                    let running = self.session.isRunning
+                    DispatchQueue.main.async { self.isRunning = running }
                 }
             }
         }
@@ -182,6 +185,15 @@ final class MirrorCapture: NSObject, ObservableObject {
 extension MirrorCapture: AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-        visionHandler(pixelBuffer, CMSampleBufferGetPresentationTimeStamp(sampleBuffer))
+        let timestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+        visionHandler(pixelBuffer, timestamp)
+
+        var cgImage: CGImage?
+        let status = VTCreateCGImageFromCVPixelBuffer(pixelBuffer, options: nil, imageOut: &cgImage)
+        if status == noErr, let image = cgImage {
+            DispatchQueue.main.async {
+                self.latestFrame = image
+            }
+        }
     }
 }
