@@ -21,6 +21,15 @@ final class MirrorModel: ObservableObject {
             tracker?.process(buffer, timestamp: timestamp)
         }
 
+        // Forward capture state changes (isRunning, cameraName, permissionDenied)
+        capture.objectWillChange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
+
+        // Forward tracker state changes (face/eye tracking confidence and landmarks)
         tracker.objectWillChange
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in

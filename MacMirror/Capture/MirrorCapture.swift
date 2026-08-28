@@ -4,7 +4,6 @@ import Foundation
 
 final class MirrorCapture: NSObject, ObservableObject {
     let session = AVCaptureSession()
-    let previewLayer = AVCaptureVideoPreviewLayer()
 
     @Published private(set) var isRunning = false
     @Published private(set) var cameraName = "No camera"
@@ -14,30 +13,45 @@ final class MirrorCapture: NSObject, ObservableObject {
     private let output = AVCaptureVideoDataOutput()
     private let visionHandler: (CVPixelBuffer, CMTime) -> Void
     private var configured = false
+    private var notificationObservers: [NSObjectProtocol] = []
 
     init(visionHandler: @escaping (CVPixelBuffer, CMTime) -> Void) {
         self.visionHandler = visionHandler
         super.init()
-        previewLayer.videoGravity = .resizeAspectFill
+        setupNotifications()
+    }
+
+    deinit {
+        for observer in notificationObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
 
     func requestAndStart() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
+            DispatchQueue.main.async { self.permissionDenied = false }
             configureAndStart()
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
                 DispatchQueue.main.async {
                     guard let self else { return }
                     if granted {
+                        self.permissionDenied = false
                         self.configureAndStart()
                     } else {
                         self.permissionDenied = true
+                        self.cameraName = "Permission denied"
                     }
                 }
             }
-        default:
-            permissionDenied = true
+        case .denied, .restricted:
+            DispatchQueue.main.async {
+                self.permissionDenied = true
+                self.cameraName = "Permission denied"
+            }
+        @unknown default:
+            DispatchQueue.main.async { self.permissionDenied = true }
         }
     }
 
@@ -60,17 +74,21 @@ final class MirrorCapture: NSObject, ObservableObject {
                 self.configure()
                 self.configured = true
             }
-            guard !self.session.isRunning else { return }
+            guard !self.session.isRunning else {
+                DispatchQueue.main.async { self.isRunning = true }
+                return
+            }
             self.session.startRunning()
+            let running = self.session.isRunning
             DispatchQueue.main.async {
-                self.isRunning = self.session.isRunning
+                self.isRunning = running
             }
         }
     }
 
     private func configure() {
         session.beginConfiguration()
-        session.sessionPreset = .hd1920x1080
+        session.sessionPreset = .high
 
         defer { session.commitConfiguration() }
 
@@ -80,15 +98,23 @@ final class MirrorCapture: NSObject, ObservableObject {
         }
 
         do {
+            for input in session.inputs {
+                session.removeInput(input)
+            }
+            for out in session.outputs {
+                session.removeOutput(out)
+            }
+
             let input = try AVCaptureDeviceInput(device: device)
             guard session.canAddInput(input) else { return }
             session.addInput(input)
 
-            guard session.canAddOutput(output) else { return }
-            output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
-            output.alwaysDiscardsLateVideoFrames = true
-            output.setSampleBufferDelegate(self, queue: queue)
-            session.addOutput(output)
+            if session.canAddOutput(output) {
+                output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
+                output.alwaysDiscardsLateVideoFrames = true
+                output.setSampleBufferDelegate(self, queue: queue)
+                session.addOutput(output)
+            }
 
             if let connection = output.connection(with: .video) {
                 if connection.isVideoMirroringSupported {
@@ -96,27 +122,60 @@ final class MirrorCapture: NSObject, ObservableObject {
                     connection.isVideoMirrored = true
                 }
             }
-            if let connection = previewLayer.connection {
-                if connection.isVideoMirroringSupported {
-                    connection.automaticallyAdjustsVideoMirroring = false
-                    connection.isVideoMirrored = true
-                }
-            }
 
-            previewLayer.session = session
-            DispatchQueue.main.async { self.cameraName = device.localizedName }
+            let name = device.localizedName
+            DispatchQueue.main.async { self.cameraName = name }
         } catch {
             DispatchQueue.main.async { self.cameraName = "Camera error" }
         }
     }
 
     private func preferredCamera() -> AVCaptureDevice? {
+        if let defaultDevice = AVCaptureDevice.default(for: .video) {
+            return defaultDevice
+        }
+        var types: [AVCaptureDevice.DeviceType] = [.builtInWideAngleCamera, .externalUnknown]
+        if #available(macOS 14.0, *) {
+            types.append(.continuityCamera)
+        }
         let discovery = AVCaptureDevice.DiscoverySession(
-            deviceTypes: [.builtInWideAngleCamera, .externalUnknown],
+            deviceTypes: types,
             mediaType: .video,
-            position: .front
+            position: .unspecified
         )
         return discovery.devices.first(where: { $0.position == .front }) ?? discovery.devices.first
+    }
+
+    private func setupNotifications() {
+        let center = NotificationCenter.default
+        let connectObs = center.addObserver(forName: .AVCaptureDeviceWasConnected, object: nil, queue: .main) { [weak self] _ in
+            guard let self else { return }
+            if self.cameraName == "No camera" {
+                self.queue.async {
+                    self.configure()
+                    if self.isRunning && !self.session.isRunning {
+                        self.session.startRunning()
+                    }
+                }
+            }
+        }
+        let disconnectObs = center.addObserver(forName: .AVCaptureDeviceWasDisconnected, object: nil, queue: .main) { [weak self] _ in
+            guard let self else { return }
+            self.queue.async {
+                self.configure()
+            }
+        }
+        let runtimeErrorObs = center.addObserver(forName: .AVCaptureSessionRuntimeError, object: session, queue: .main) { [weak self] _ in
+            guard let self else { return }
+            self.queue.async {
+                if self.isRunning {
+                    self.session.startRunning()
+                    let running = self.session.isRunning
+                    DispatchQueue.main.async { self.isRunning = running }
+                }
+            }
+        }
+        notificationObservers = [connectObs, disconnectObs, runtimeErrorObs]
     }
 }
 
